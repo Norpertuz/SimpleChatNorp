@@ -116,6 +116,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 void tray_init() {
+	printf("====================================\n");
+    printf(" chat_agent by Norpertuz (Windows) v1.0\n");
+    printf("====================================\n\n");
     // tworzymy ukryte okno
     WNDCLASS wc = {0};
     wc.lpfnWndProc = WndProc;
