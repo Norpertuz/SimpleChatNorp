@@ -216,3 +216,39 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Database
+chat.db
+
+# Upload Folder
+.upload/
+
+# pliki wykonywalne
+agent
+*.out
+*.exe
+
+# obiekty i biblioteki
+*.o
+*.so
+*.a
+
+# debug / build
+*.dSYM/
+*.stackdump
+
+# katalogi buildów
+build/
+bin/
+
+# Make
+*.d
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+*~
+*.swp

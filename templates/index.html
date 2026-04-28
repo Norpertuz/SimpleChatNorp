@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chat</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* CHAT */
+#chat-container {
+    width: 75%;
+    max-width: 1000px;
+    height: 85%;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    backdrop-filter: blur(14px);
+}
+
+/* MESSAGES */
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 18px;
+    padding-right: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* scrollbar */
+#messages::-webkit-scrollbar { width: 10px; }
+#messages::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.05);
+    border-radius: 10px;
+}
+#messages::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.35);
+    border-radius: 10px;
+}
+#messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,0,0,0.55);
+}
+
+/* MESSAGE */
+.message {
+    margin-bottom: 15px;
+    padding: 18px 22px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.35);
+    font-size: 20px;
+}
+
+.message strong {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+
+.right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.date {
+    font-size: 13px;
+    color: rgba(0,0,0,0.5);
+}
+
+.icon {
+    cursor: pointer;
+}
+.icon:hover {
+    color: red;
+}
+
+/* CONTENT */
+.msg-content {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* attachments */
+.attachments {
+    margin-top: 8px;
+    font-size: 14px;
+}
+.attachments a {
+    display: block;
+    color: #003b7a;
+    text-decoration: none;
+}
+.attachments a:hover {
+    text-decoration: underline;
+}
+
+/* INPUT AREA */
+#input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* TOP ROW */
+#top-inputs {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* nick */
+#nickname {
+    width: 160px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.6);
+    font-size: 16px;
+    background: rgba(255,255,255,0.25);
+    outline: none;
+}
+
+/* attach button */
+#attachBtn {
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: 0.2s;
+}
+
+#attachBtn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+}
+
+/* hidden input */
+#files { display: none; }
+
+/* TEXTAREA */
+#msgInput {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.6);
+    font-size: 18px;
+    background: rgba(255,255,255,0.25);
+    outline: none;
+    resize: none;
+    height: 70px;
+}
+#msgInput:focus {
+    background: rgba(255,255,255,0.4);
+}
+
+/* preview */
+#filePreview {
+    font-size: 13px;
+    color: rgba(0,0,0,0.7);
+}
+#filePreview div {
+    margin-top: 4px;
+}
+
+/* sending */
+#sendingStatus {
+    font-size: 14px;
+    color: #222;
+    display: none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="chat-container">
+
+    <div id="messages"></div>
+
+    <div id="input-container">
+
+        <div id="top-inputs">
+            <input type="text" id="nickname" placeholder="Nick" value="User">
+            <button id="attachBtn">📎</button>
+            <input type="file" id="files" multiple>
+        </div>
+
+        <textarea id="msgInput" placeholder="Enter = wyślij, Shift+Enter = nowa linia"></textarea>
+
+        <div id="filePreview"></div>
+        <div id="sendingStatus">Wysyłanie...</div>
+
+    </div>
+
+</div>
+
+<script>
+const input = document.getElementById("msgInput");
+const nick = document.getElementById("nickname");
+const filesInput = document.getElementById("files");
+const attachBtn = document.getElementById("attachBtn");
+const messagesDiv = document.getElementById("messages");
+const preview = document.getElementById("filePreview");
+const sendingStatus = document.getElementById("sendingStatus");
+
+attachBtn.onclick = () => filesInput.click();
+
+/* preview files */
+filesInput.addEventListener("change", () => {
+    preview.innerHTML = "";
+    for (const f of filesInput.files) {
+        const div = document.createElement("div");
+        div.textContent = "📎 " + f.name;
+        preview.appendChild(div);
+    }
+});
+
+let userNearBottom = true;
+
+messagesDiv.addEventListener("scroll", () => {
+    userNearBottom =
+        messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 80;
+});
+
+/* FETCH */
+async function fetchMessages() {
+    const res = await fetch("/messages", { cache: "no-store" });
+    const data = await res.json();
+
+    const oldHeight = messagesDiv.scrollHeight;
+
+    messagesDiv.innerHTML = data.map(m => `
+        <div class="message">
+            <strong>
+                <span>${m.sender}</span>
+                <span class="right">
+                    <span class="date">${m.date}</span>
+                    <span class="icon" onclick="copyMsg(this)">📋</span>
+                    <span class="icon" onclick="deleteMsg(${m.id})">✖</span>
+                </span>
+            </strong>
+
+            <div class="msg-content">${escapeHtml(m.message)}</div>
+
+            ${m.attachments?.length ? `
+                <div class="attachments">
+                    ${m.attachments.map(f =>
+                        `<a href="/upload/${f}" target="_blank">📎 ${f}</a>`
+                    ).join("")}
+                </div>
+            ` : ""}
+        </div>
+    `).join("");
+
+    if (userNearBottom) {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    } else {
+        messagesDiv.scrollTop += (messagesDiv.scrollHeight - oldHeight);
+    }
+}
+
+/* SEND */
+input.addEventListener("keydown", async (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+
+        const text = input.value.trim();
+        if (!text && filesInput.files.length === 0) return;
+
+        const form = new FormData();
+        form.append("user", nick.value || "Anon");
+        form.append("text", text);
+
+        for (const f of filesInput.files) {
+            form.append("files", f);
+        }
+
+        sendingStatus.style.display = "block";
+
+        await fetch("/send", { method: "POST", body: form });
+
+        sendingStatus.style.display = "none";
+
+        input.value = "";
+        filesInput.value = "";
+        preview.innerHTML = "";
+
+        fetchMessages();
+    }
+});
+
+/* COPY */
+function copyMsg(el) {
+    const msg = el.closest(".message").querySelector(".msg-content").innerText;
+
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(msg);
+    } else {
+        const ta = document.createElement("textarea");
+        ta.value = msg;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+    }
+}
+
+/* DELETE */
+async function deleteMsg(id) {
+    if (!confirm("Usunąć?")) return;
+    await fetch(`/delete/${id}`, { method: "POST" });
+    fetchMessages();
+}
+
+/* ESCAPE */
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.innerText = text;
+    return div.innerHTML;
+}
+
+setInterval(fetchMessages, 1500);
+fetchMessages();
+</script>
+
+</body>
+</html>
