@@ -7,11 +7,9 @@
 #ifdef _WIN32
     #include <windows.h>
     #include <shellapi.h>
-#else
-    #include <unistd.h>
 #endif
 
-#define URL "http://localhost:5000/count"
+#define URL "http://192.168.0.183:5000/count"
 #define INTERVAL_MS 2000
 
 // ===== HTTP buffer =====
@@ -71,29 +69,80 @@ int fetch_count() {
 
 // ===== WINDOWS TRAY =====
 NOTIFYICONDATA nid;
+HICON icon_normal;
+HICON icon_unread;
+
+int has_unread = 0;
+
+// callback window (musi istnieć)
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+
+        case WM_CREATE:
+            icon_normal = LoadIcon(NULL, IDI_INFORMATION);
+            icon_unread = LoadIcon(NULL, IDI_WARNING);
+
+            ZeroMemory(&nid, sizeof(nid));
+            nid.cbSize = sizeof(nid);
+            nid.hWnd = hwnd;
+            nid.uID = 1;
+            nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+            nid.uCallbackMessage = WM_APP + 1;
+            nid.hIcon = icon_normal;
+            strcpy(nid.szTip, "Chat agent");
+
+            Shell_NotifyIcon(NIM_ADD, &nid);
+            break;
+
+        case WM_APP + 1:
+            if (LOWORD(lParam) == WM_LBUTTONUP) {
+                // klik = oznacz jako przeczytane
+                has_unread = 0;
+
+                nid.hIcon = icon_normal;
+                strcpy(nid.szTip, "All messages read");
+
+                Shell_NotifyIcon(NIM_MODIFY, &nid);
+            }
+            break;
+
+        case WM_DESTROY:
+            Shell_NotifyIcon(NIM_DELETE, &nid);
+            PostQuitMessage(0);
+            break;
+    }
+
+    return DefWindowProc(hwnd, msg, wParam, lParam);
+}
 
 void tray_init() {
-    ZeroMemory(&nid, sizeof(nid));
-    nid.cbSize = sizeof(nid);
-    nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
-    nid.uID = 1;
-    nid.hWnd = GetConsoleWindow();
-    nid.hIcon = LoadIcon(NULL, IDI_INFORMATION);
-    strcpy(nid.szTip, "Chat agent");
+    // tworzymy ukryte okno
+    WNDCLASS wc = {0};
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = "ChatAgentClass";
 
-    Shell_NotifyIcon(NIM_ADD, &nid);
+    RegisterClass(&wc);
+
+    CreateWindowEx(
+        0,
+        "ChatAgentClass",
+        "ChatAgent",
+        0,
+        0, 0, 0, 0,
+        NULL, NULL,
+        GetModuleHandle(NULL),
+        NULL
+    );
 }
 
 void tray_update(int new_msgs) {
     if (new_msgs > 0) {
-        nid.hIcon = LoadIcon(NULL, IDI_WARNING);
+        has_unread = 1;
+        nid.hIcon = icon_unread;
         strcpy(nid.szTip, "New messages!");
-    } else {
-        nid.hIcon = LoadIcon(NULL, IDI_INFORMATION);
-        strcpy(nid.szTip, "Chat agent");
+        Shell_NotifyIcon(NIM_MODIFY, &nid);
     }
-
-    Shell_NotifyIcon(NIM_MODIFY, &nid);
 }
 
 void sleep_ms(int ms) {
@@ -102,17 +151,18 @@ void sleep_ms(int ms) {
 
 #else
 
-// ===== LINUX TRAY (fallback: brak GUI, tylko logika) =====
+// ===== LINUX =====
 void tray_init() {
     printf("Tray init (Linux fallback)\n");
 }
 
 void tray_update(int new_msgs) {
     if (new_msgs > 0) {
-        //printf("[TRAY] NEW MESSAGES!\n");
-	char cmd[256];
-	snprintf(cmd,sizeof(cmd),"notify-send 'ChatNorp' 'You have %d new messages.'",new_msgs);
-	system(cmd);
+        char cmd[256];
+        snprintf(cmd, sizeof(cmd),
+            "notify-send 'ChatNorp' 'You have %d new messages.'",
+            new_msgs);
+        system(cmd);
     }
 }
 
@@ -129,6 +179,11 @@ int main() {
     int last = fetch_count();
     if (last < 0) last = 0;
 
+#ifdef _WIN32
+    // message loop Windows (TRAY CLICK)
+    MSG msg;
+#endif
+
     while (1) {
         sleep_ms(INTERVAL_MS);
 
@@ -142,6 +197,13 @@ int main() {
         }
 
         last = current;
+
+#ifdef _WIN32
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+#endif
     }
 
     return 0;
