@@ -9,7 +9,7 @@
     #include <shellapi.h>
 #endif
 
-#define URL "http://192.168.0.183:5000/count"
+#define URL "http://0.0.0.0:5000/count"
 #define INTERVAL_MS 2000
 
 // ===== HTTP buffer =====
